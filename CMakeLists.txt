@@ -1,7 +1,8 @@
 project(pyhepmc_ng CXX)
 #Should be fixed 
 cmake_minimum_required(VERSION 2.8.12)
-find_package (Python COMPONENTS  Development)
+set(CMAKE_VERBOSE_MAKEFILE ON)
+find_package (Python COMPONENTS  Development Interpreter)
 option(USE_INSTALLED_HEPMC3 "Use pyhepmc as a standalone package" ON)
 
 
@@ -11,9 +12,9 @@ if (USE_INSTALLED_HEPMC3)
 file(STRINGS setup.py  pyhepmc_version_defines REGEX "__version__")
 string(REPLACE "'" ";" pyhepmc_version_split ${pyhepmc_version_defines})
 list(GET pyhepmc_version_split 1 pyhepmc_version)
-message(STATUS "pyhepmc v${${PROJECT_NAME}_VERSION}")
-set(THIS_PROJECT_NAME ${PROJECT_NAME})
 set(${PROJECT_NAME}_VERSION ${pyhepmc_version})
+set(THIS_PROJECT_NAME ${PROJECT_NAME})
+set(THIS_PROJECT_NAME_VERSION ${pyhepmc_version})
 #
 find_package(HepMC3 REQUIRED)
 include_directories(${HEPMC3_INCLUDE_DIR})
@@ -51,9 +52,10 @@ message(FATAL "C++11 support is required")
 endif()
 else()
 set(THIS_PROJECT_NAME pyhepmc)
+set(${THIS_PROJECT_NAME_VERSION} ${PROJECT_VERSION})
 endif()
 #<-This is needed for standalone compilation 
-
+message(STATUS "pyhepmc v${THIS_PROJECT_NAME_VERSION}")
 
 #Taken from CmakelIsts in pybind project
 set(PYBIND11_HEADERS
@@ -82,6 +84,13 @@ set(PYBIND11_HEADERS
   include/pybind11/stl_bind.h
 )
 
-add_library(${THIS_PROJECT_NAME} SHARED ${PYBIND11_HEADERS} src/main.cpp src/hepevt_wrapper.h)
+Python_add_library(${THIS_PROJECT_NAME} MODULE ${PYBIND11_HEADERS} src/main.cpp src/hepevt_wrapper.h)
 target_include_directories(${THIS_PROJECT_NAME} PUBLIC ${Python_INCLUDE_DIRS} )
-target_link_libraries(${THIS_PROJECT_NAME} INTERFACE $<BUILD_INTERFACE:${PYTHON_LIBRARIES}>)
+target_compile_definitions(${THIS_PROJECT_NAME} PRIVATE "-DVERSION_INFO=\"${THIS_PROJECT_NAME_VERSION}\"" )
+SET_TARGET_PROPERTIES(${THIS_PROJECT_NAME} PROPERTIES OUTPUT_NAME  cpp)
+#set(lib_type MODULE)
+#
+target_link_libraries(${THIS_PROJECT_NAME} PUBLIC ${Python_LIBRARIES}  HepMC3  HepMC3search)
+
+install(TARGETS ${THIS_PROJECT_NAME} DESTINATION ${Python_SITEARCH}/${THIS_PROJECT_NAME})
+install(FILES pyhepmc_ng/__init__.py   pyhepmc_ng/view.py DESTINATION  ${Python_SITEARCH}/${THIS_PROJECT_NAME})
