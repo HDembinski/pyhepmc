@@ -57,38 +57,19 @@ endif()
 #<-This is needed for standalone compilation 
 message(STATUS "pyhepmc v${THIS_PROJECT_NAME_VERSION}")
 
-#Taken from CmakelIsts in pybind project
-set(PYBIND11_HEADERS
-  include/pybind11/detail/class.h
-  include/pybind11/detail/common.h
-  include/pybind11/detail/descr.h
-  include/pybind11/detail/init.h
-  include/pybind11/detail/internals.h
-  include/pybind11/detail/typeid.h
-  include/pybind11/attr.h
-  include/pybind11/buffer_info.h
-  include/pybind11/cast.h
-  include/pybind11/chrono.h
-  include/pybind11/common.h
-  include/pybind11/complex.h
-  include/pybind11/options.h
-  include/pybind11/eigen.h
-  include/pybind11/embed.h
-  include/pybind11/eval.h
-  include/pybind11/functional.h
-  include/pybind11/numpy.h
-  include/pybind11/operators.h
-  include/pybind11/pybind11.h
-  include/pybind11/pytypes.h
-  include/pybind11/stl.h
-  include/pybind11/stl_bind.h
-)
+## So far defunct find_package(pybind11 CONFIG)
+if (NOT pybind11_FOUND)
+message(STATUS "No pybind11 headers found. Will use local copy of pybind11 headers") 
+set(pybind11_INCLUDE_DIR ${CMAKE_CURRENT_BINARY_DIR}/include)
+set(pybind11_DEFINITIONS "-DUSING_pybind11 ")
+endif()
 
-Python_add_library(${THIS_PROJECT_NAME} MODULE ${PYBIND11_HEADERS} src/main.cpp src/hepevt_wrapper.h)
-target_include_directories(${THIS_PROJECT_NAME} PUBLIC ${Python_INCLUDE_DIRS} )
-target_compile_definitions(${THIS_PROJECT_NAME} PRIVATE "-DVERSION_INFO=\"${THIS_PROJECT_NAME_VERSION}\"" )
+Python_add_library(${THIS_PROJECT_NAME} MODULE src/main.cpp src/hepevt_wrapper.h)
+target_include_directories(${THIS_PROJECT_NAME} PUBLIC ${Python_INCLUDE_DIRS} ${pybind11_INCLUDE_DIR})
+target_compile_definitions(${THIS_PROJECT_NAME} PRIVATE "-DVERSION_INFO=\"${THIS_PROJECT_NAME_VERSION}\""   )
+target_compile_definitions(${THIS_PROJECT_NAME} PRIVATE "${pybind11_DEFINITIONS}"   )
 SET_TARGET_PROPERTIES(${THIS_PROJECT_NAME} PROPERTIES OUTPUT_NAME  cpp)
-target_link_libraries(${THIS_PROJECT_NAME} PUBLIC ${Python_LIBRARIES}  HepMC3  HepMC3search ${HEPMC3_ROOTIO_LIBRARY})
+target_link_libraries(${THIS_PROJECT_NAME} PUBLIC ${Python_LIBRARIES}  HepMC3  HepMC3search ${HEPMC3_ROOTIO_LIBRARY} )
 
 install(TARGETS ${THIS_PROJECT_NAME} DESTINATION ${Python_SITEARCH}/${THIS_PROJECT_NAME})
 install(FILES pyhepmc_ng/__init__.py   pyhepmc_ng/view.py DESTINATION  ${Python_SITEARCH}/${THIS_PROJECT_NAME})

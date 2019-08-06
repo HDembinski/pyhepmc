@@ -12,9 +12,11 @@
 #include "HepMC3/Units.h"
 #include "HepMC3/Print.h"
 #include "HepMC3/WriterAscii.h"
+#include "HepMC3/WriterAsciiHepMC2.h"
 #include "HepMC3/ReaderAscii.h"
 #include "HepMC3/ReaderAsciiHepMC2.h"
 #include "HepMC3/ReaderLHEF.h"
+#include "HepMC3/ReaderHEPEVT.h"
 #include "HepMC3/HEPEVT_Wrapper.h"
 #include <memory>
 #include <vector>
@@ -729,6 +731,28 @@ PYBIND11_MODULE(cpp, m) {
                 return false;
             })
         ;
+    py::class_<WriterAsciiHepMC2>(m, "WriterAsciiHepMC2")
+        .def(py::init<const std::string&, GenRunInfoPtr>(),
+             "filename"_a, "run"_a = nullptr)
+        .def(py::init<std::stringstream&, GenRunInfoPtr>(),
+             "ostringstream"_a, "run"_a = nullptr,
+             py::keep_alive<1, 2>())
+        METH(write_event, WriterAsciiHepMC2)
+        METH(write_run_info, WriterAsciiHepMC2)
+        .def("write", [](WriterAsciiHepMC2& self, const GenEvent& evt) {
+                self.write_event(evt);
+            })
+        METH(failed, WriterAsciiHepMC2)
+        METH(close, WriterAsciiHepMC2)
+        PROP(precision, WriterAsciiHepMC2)
+        // support contextmanager protocoll
+        .def("__enter__", [](py::object self) { return self; })
+        .def("__exit__", [](WriterAsciiHepMC2& self, py::object type, py::object value, py::object tb) {
+                self.close();
+                return false;
+            })
+        ;
+
 
     m.def("fill_genevent_from_hepevt", fill_genevent_from_hepevt<double>,
           "evt"_a, "event_number"_a, "p"_a, "m"_a, "v"_a, "pid"_a, "parents"_a,
