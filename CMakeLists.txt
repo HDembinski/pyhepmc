@@ -88,9 +88,7 @@ Python_add_library(${THIS_PROJECT_NAME} MODULE ${PYBIND11_HEADERS} src/main.cpp 
 target_include_directories(${THIS_PROJECT_NAME} PUBLIC ${Python_INCLUDE_DIRS} )
 target_compile_definitions(${THIS_PROJECT_NAME} PRIVATE "-DVERSION_INFO=\"${THIS_PROJECT_NAME_VERSION}\"" )
 SET_TARGET_PROPERTIES(${THIS_PROJECT_NAME} PROPERTIES OUTPUT_NAME  cpp)
-#set(lib_type MODULE)
-#
-target_link_libraries(${THIS_PROJECT_NAME} PUBLIC ${Python_LIBRARIES}  HepMC3  HepMC3search)
+target_link_libraries(${THIS_PROJECT_NAME} PUBLIC ${Python_LIBRARIES}  HepMC3  HepMC3search ${HEPMC3_ROOTIO_LIBRARY})
 
 install(TARGETS ${THIS_PROJECT_NAME} DESTINATION ${Python_SITEARCH}/${THIS_PROJECT_NAME})
 install(FILES pyhepmc_ng/__init__.py   pyhepmc_ng/view.py DESTINATION  ${Python_SITEARCH}/${THIS_PROJECT_NAME})

@@ -14,6 +14,7 @@
 #include "HepMC3/WriterAscii.h"
 #include "HepMC3/ReaderAscii.h"
 #include "HepMC3/ReaderAsciiHepMC2.h"
+#include "HepMC3/ReaderLHEF.h"
 #include "HepMC3/HEPEVT_Wrapper.h"
 #include <memory>
 #include <vector>
@@ -682,6 +683,30 @@ PYBIND11_MODULE(cpp, m) {
                 return false;
             })
         ;
+
+    py::class_<ReaderLHEF>(m, "ReaderLHEF")
+        .def(py::init<const std::string>(), "filename"_a)
+//This will be enabled a bit later        .def(py::init<std::stringstream&>())
+        METH(read_event, ReaderLHEF)
+        METH(failed, ReaderLHEF)
+        METH(close, ReaderLHEF)
+        .def("read", [](ReaderLHEF& self) {
+                py::object obj = py::cast(GenEvent());
+                bool ok = self.read_event(py::cast<GenEvent&>(obj));
+                if (!ok) {
+                    PyErr_SetString(PyExc_IOError, "error reading event");
+                    throw py::error_already_set();
+                }
+                return obj;
+            })
+        // support contextmanager protocoll
+        .def("__enter__", [](py::object self) { return self; })
+        .def("__exit__", [](ReaderLHEF& self, py::object type, py::object value, py::object tb) {
+                self.close();
+                return false;
+            })
+        ;
+
 
     py::class_<WriterAscii>(m, "WriterAscii")
         .def(py::init<const std::string&, GenRunInfoPtr>(),
