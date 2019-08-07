@@ -11,13 +11,21 @@
 #include "HepMC3/GenVertex.h"
 #include "HepMC3/Units.h"
 #include "HepMC3/Print.h"
+#include "HepMC3/ReaderFactory.h"
 #include "HepMC3/WriterAscii.h"
+#include "HepMC3/WriterHEPEVT.h"
 #include "HepMC3/WriterAsciiHepMC2.h"
 #include "HepMC3/ReaderAscii.h"
 #include "HepMC3/ReaderAsciiHepMC2.h"
 #include "HepMC3/ReaderLHEF.h"
 #include "HepMC3/ReaderHEPEVT.h"
 #include "HepMC3/HEPEVT_Wrapper.h"
+
+#ifdef HEPMC3_ROOTIO
+#include "HepMC3/ReaderRootTree.h"
+#include "HepMC3/ReaderRoot.h"
+#endif
+
 #include <memory>
 #include <vector>
 #include <algorithm>
@@ -666,6 +674,7 @@ PYBIND11_MODULE(cpp, m) {
 
     py::class_<ReaderAsciiHepMC2>(m, "ReaderAsciiHepMC2")
         .def(py::init<const std::string>(), "filename"_a)
+        .def(py::init<std::stringstream&>())
         METH(read_event, ReaderAsciiHepMC2)
         METH(failed, ReaderAsciiHepMC2)
         METH(close, ReaderAsciiHepMC2)
@@ -731,6 +740,26 @@ PYBIND11_MODULE(cpp, m) {
                 return false;
             })
         ;
+
+
+    py::class_<WriterHEPEVT>(m, "WriterHEPEVT")
+        .def(py::init<const std::string&>(),"filename"_a)
+        METH(write_event, WriterHEPEVT)
+        .def("write", [](WriterHEPEVT& self, const GenEvent& evt) {
+                self.write_event(evt);
+            })
+        METH(failed, WriterHEPEVT)
+        METH(close, WriterHEPEVT)
+        // support contextmanager protocoll
+        .def("__enter__", [](py::object self) { return self; })
+        .def("__exit__", [](WriterHEPEVT& self, py::object type, py::object value, py::object tb) {
+                self.close();
+                return false;
+            })
+        ;
+
+
+
     py::class_<WriterAsciiHepMC2>(m, "WriterAsciiHepMC2")
         .def(py::init<const std::string&, GenRunInfoPtr>(),
              "filename"_a, "run"_a = nullptr)
@@ -752,6 +781,55 @@ PYBIND11_MODULE(cpp, m) {
                 return false;
             })
         ;
+#ifdef HEPMC3_ROOTIO
+
+    py::class_<ReaderRootTree>(m, "ReaderRootTree")
+        .def(py::init<const std::string>(), "filename"_a)
+        .def(py::init<const std::string,const std::string,const std::string>(), "filename"_a,"treename"_a,"branchname"_a)
+        METH(read_event, ReaderRootTree)
+        METH(failed, ReaderRootTree)
+        METH(close, ReaderRootTree)
+        .def("read", [](ReaderRootTree& self) {
+                py::object obj = py::cast(GenEvent());
+                bool ok = self.read_event(py::cast<GenEvent&>(obj));
+                if (!ok) {
+                    PyErr_SetString(PyExc_IOError, "error reading event");
+                    throw py::error_already_set();
+                }
+                return obj;
+            })
+        // support contextmanager protocoll
+        .def("__enter__", [](py::object self) { return self; })
+        .def("__exit__", [](ReaderRootTree& self, py::object type, py::object value, py::object tb) {
+                self.close();
+                return false;
+            })
+        ;
+
+
+    py::class_<ReaderRoot>(m, "ReaderRoot")
+        .def(py::init<const std::string>(), "filename"_a)
+        METH(read_event, ReaderRoot)
+        METH(failed, ReaderRoot)
+        METH(close, ReaderRoot)
+        .def("read", [](ReaderRoot& self) {
+                py::object obj = py::cast(GenEvent());
+                bool ok = self.read_event(py::cast<GenEvent&>(obj));
+                if (!ok) {
+                    PyErr_SetString(PyExc_IOError, "error reading event");
+                    throw py::error_already_set();
+                }
+                return obj;
+            })
+        // support contextmanager protocoll
+        .def("__enter__", [](py::object self) { return self; })
+        .def("__exit__", [](ReaderRoot& self, py::object type, py::object value, py::object tb) {
+                self.close();
+                return false;
+            })
+        ;
+
+#endif
 
 
     m.def("fill_genevent_from_hepevt", fill_genevent_from_hepevt<double>,
